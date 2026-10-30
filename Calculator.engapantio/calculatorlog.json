@@ -1,10 +1,23 @@
 {
+  "Count": 3,
   "Operations": [
     {
-      "Operand1": 8.0,
-      "Operand2": 0.0,
-      "Operation": "Divide",
-      "Result": "NaN"
+      "Operand1": 10,
+      "Operand2": null,
+      "Operation": "10^x",
+      "Result": 10000000000
+    },
+    {
+      "Operand1": 3,
+      "Operand2": 4,
+      "Operation": "Power",
+      "Result": 81
+    },
+    {
+      "Operand1": 1,
+      "Operand2": 1,
+      "Operation": "Subtract",
+      "Result": 0
     }
   ]
 }

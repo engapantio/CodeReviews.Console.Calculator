@@ -1,90 +1,216 @@
-﻿using System.Text.RegularExpressions;
 using CalculatorLibrary;
 
-namespace CalculatorProgram
+namespace CalculatorProgram;
+
+internal static class Program
 {
-
-    class Program
+    private static void Main()
     {
-        static void Main(string[] args)
+        Console.WriteLine("Console Calculator in C#");
+        Console.WriteLine("------------------------");
+
+        Calculator calculator;
+        try
         {
-            bool endApp = false;
-            // Display title as the C# console calculator app.
-            Console.WriteLine("Console Calculator in C#\r");
-            Console.WriteLine("------------------------\n");
-
-            Calculator calculator = new Calculator();
-            while (!endApp)
-            {
-                // Declare variables and set to empty.
-                // Use Nullable types (with ?) to match type of System.Console.ReadLine
-                string? numInput1 = "";
-                string? numInput2 = "";
-                double result = 0;
-
-                // Ask the user to type the first number.
-                Console.Write("Type a number, and then press Enter: ");
-                numInput1 = Console.ReadLine();
-
-                double cleanNum1 = 0;
-                while (!double.TryParse(numInput1, out cleanNum1))
-                {
-                    Console.Write("This is not valid input. Please enter an integer value: ");
-                    numInput1 = Console.ReadLine();
-                }
-
-                // Ask the user to type the second number.
-                Console.Write("Type another number, and then press Enter: ");
-                numInput2 = Console.ReadLine();
-
-                double cleanNum2 = 0;
-                while (!double.TryParse(numInput2, out cleanNum2))
-                {
-                    Console.Write("This is not valid input. Please enter an integer value: ");
-                    numInput2 = Console.ReadLine();
-                }
-
-                // Ask the user to choose an operator.
-                Console.WriteLine("Choose an operator from the following list:");
-                Console.WriteLine("\ta - Add");
-                Console.WriteLine("\ts - Subtract");
-                Console.WriteLine("\tm - Multiply");
-                Console.WriteLine("\td - Divide");
-                Console.Write("Your option? ");
-
-                string? op = Console.ReadLine();
-
-                // Validate input is not null, and matches the pattern
-                if (op == null || !Regex.IsMatch(op, "[a|s|m|d]"))
-                {
-                    Console.WriteLine("Error: Unrecognized input.");
-                }
-                else
-                {
-                    try
-                    {
-                        result = calculator.DoOperation(cleanNum1, cleanNum2, op);
-                        if (double.IsNaN(result))
-                        {
-                            Console.WriteLine("This operation will result in a mathematical error.\n");
-                        }
-                        else Console.WriteLine("Your result: {0:0.##}\n", result);
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine("Oh no! An exception occurred trying to do the math.\n - Details: " + e.Message);
-                    }
-                }
-                Console.WriteLine("------------------------\n");
-
-                // Wait for the user to respond before closing.
-                Console.Write("Press 'n' and Enter to close the app, or press any other key and Enter to continue: ");
-                if (Console.ReadLine() == "n") endApp = true;
-
-                Console.WriteLine("\n"); // Friendly linespacing.
-            }
-            calculator.Finish();
+            calculator = new Calculator();
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            Console.WriteLine($"Unable to load calculator history: {exception.Message}");
             return;
+        }
+
+        var endApp = false;
+        while (!endApp)
+        {
+            Console.WriteLine($"\nSuccessful calculations: {calculator.CalculationCount}");
+            Console.WriteLine("Choose an option:");
+            Console.WriteLine("\tc - Calculate");
+            Console.WriteLine("\th - View calculation history");
+            Console.WriteLine("\td - Delete calculation history");
+            Console.WriteLine("\tq - Quit");
+            Console.Write("Your option? ");
+
+            switch (Console.ReadLine()?.Trim().ToLowerInvariant())
+            {
+                case "c":
+                    Calculate(calculator);
+                    break;
+                case "h":
+                    DisplayHistory(calculator);
+                    break;
+                case "d":
+                    ClearHistory(calculator);
+                    break;
+                case "q":
+                case null:
+                    endApp = true;
+                    break;
+                default:
+                    Console.WriteLine("Unrecognized option.");
+                    break;
+            }
+        }
+
+        try
+        {
+            calculator.Finish();
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            Console.WriteLine($"Unable to save calculator history: {exception.Message}");
+        }
+    }
+
+    private static void Calculate(Calculator calculator)
+    {
+        Console.WriteLine("\nChoose an operation:");
+        Console.WriteLine("\ta - Add");
+        Console.WriteLine("\ts - Subtract");
+        Console.WriteLine("\tm - Multiply");
+        Console.WriteLine("\td - Divide");
+        Console.WriteLine("\tp - Power (x^y)");
+        Console.WriteLine("\tr - Square root");
+        Console.WriteLine("\tx - 10^x");
+        Console.WriteLine("\tsin - Sine (degrees)");
+        Console.WriteLine("\tcos - Cosine (degrees)");
+        Console.WriteLine("\ttan - Tangent (degrees)");
+        Console.Write("Your option? ");
+
+        string? operation = Console.ReadLine()?.Trim().ToLowerInvariant();
+        if (operation is null)
+        {
+            return;
+        }
+
+        var isUnary = operation is "r" or "x" or "sin" or "cos" or "tan";
+        var isBinary = operation is "a" or "s" or "m" or "d" or "p";
+        if (!isUnary && !isBinary)
+        {
+            Console.WriteLine("Unrecognized operation.");
+            return;
+        }
+
+        if (!TryReadOperand(calculator, "Enter the first value (or H to use a history result): ", out double first))
+        {
+            return;
+        }
+
+        double result;
+        try
+        {
+            if (isUnary)
+            {
+                result = calculator.DoOperation(first, operation);
+            }
+            else
+            {
+                if (!TryReadOperand(calculator, "Enter the second value (or H to use a history result): ", out double second))
+                {
+                    return;
+                }
+
+                result = calculator.DoOperation(first, second, operation);
+            }
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or OverflowException)
+        {
+            Console.WriteLine($"Unable to save the calculation: {exception.Message}");
+            return;
+        }
+
+        if (double.IsNaN(result))
+        {
+            Console.WriteLine("This operation is undefined or will result in a mathematical error.");
+        }
+        else
+        {
+            Console.WriteLine($"Your result: {result:G}");
+        }
+    }
+
+    private static bool TryReadOperand(Calculator calculator, string prompt, out double value)
+    {
+        while (true)
+        {
+            Console.Write(prompt);
+            string? input = Console.ReadLine();
+            if (input is null)
+            {
+                value = 0;
+                return false;
+            }
+
+            input = input.Trim();
+            if (input.Equals("h", StringComparison.OrdinalIgnoreCase))
+            {
+                if (calculator.History.Count == 0)
+                {
+                    Console.WriteLine("There are no saved results to use.");
+                    continue;
+                }
+
+                DisplayHistory(calculator);
+                Console.Write("Enter the history number to use: ");
+                string? selection = Console.ReadLine();
+                if (int.TryParse(selection, out int historyNumber) &&
+                    historyNumber >= 1 &&
+                    historyNumber <= calculator.History.Count)
+                {
+                    value = calculator.History[calculator.History.Count - historyNumber].Result;
+                    return true;
+                }
+
+                if (selection is null)
+                {
+                    value = 0;
+                    return false;
+                }
+
+                Console.WriteLine("That is not a valid history number.");
+                continue;
+            }
+
+            if (double.TryParse(input, out value) && double.IsFinite(value))
+            {
+                return true;
+            }
+
+            Console.WriteLine("Invalid number. Enter a finite numeric value or H.");
+        }
+    }
+
+    private static void DisplayHistory(Calculator calculator)
+    {
+        Console.WriteLine($"\nSuccessful calculations: {calculator.CalculationCount}");
+        if (calculator.History.Count == 0)
+        {
+            Console.WriteLine("No recent calculations.");
+            return;
+        }
+
+        Console.WriteLine("Recent calculations (most recent first):");
+        for (int index = calculator.History.Count - 1; index >= 0; index--)
+        {
+            CalculationEntry entry = calculator.History[index];
+            int historyNumber = calculator.History.Count - index;
+            string expression = entry.Operand2 is double operand2
+                ? $"{entry.Operand1:G} {entry.Operation} {operand2:G}"
+                : $"{entry.Operation}({entry.Operand1:G})";
+            Console.WriteLine($"{historyNumber}. {expression} = {entry.Result:G}");
+        }
+    }
+
+    private static void ClearHistory(Calculator calculator)
+    {
+        try
+        {
+            calculator.ClearHistory();
+            Console.WriteLine("Calculation history deleted. The lifetime calculation count is unchanged.");
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            Console.WriteLine($"Unable to delete calculation history: {exception.Message}");
         }
     }
 }
