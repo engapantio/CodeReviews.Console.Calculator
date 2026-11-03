@@ -9,6 +9,12 @@
 
   <ItemGroup>
     <ProjectReference Include="../CalculatorLibrary/CalculatorLibrary.csproj" />
+    <None Include=".env" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DotNetEnv" Version="3.2.0" />
+    <PackageReference Include="Microsoft.CognitiveServices.Speech" Version="1.53.0" />
   </ItemGroup>
 
 </Project>

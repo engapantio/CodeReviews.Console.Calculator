@@ -1,5 +1,5 @@
 {
-  "Count": 3,
+  "Count": 7,
   "Operations": [
     {
       "Operand1": 10,
@@ -18,6 +18,30 @@
       "Operand2": 1,
       "Operation": "Subtract",
       "Result": 0
+    },
+    {
+      "Operand1": 12,
+      "Operand2": 0,
+      "Operation": "Add",
+      "Result": 12
+    },
+    {
+      "Operand1": 12,
+      "Operand2": 30,
+      "Operation": "Add",
+      "Result": 42
+    },
+    {
+      "Operand1": 8,
+      "Operand2": 14,
+      "Operation": "Subtract",
+      "Result": -6
+    },
+    {
+      "Operand1": 8,
+      "Operand2": 4,
+      "Operation": "Divide",
+      "Result": 2
     }
   ]
 }

@@ -1,11 +1,16 @@
-using CalculatorLibrary;
+﻿using CalculatorLibrary;
 
 namespace CalculatorProgram;
 
 internal static class Program
 {
-    private static void Main()
+    async private static Task Main()
     {
+        string envPath = Path.Combine(
+    AppContext.BaseDirectory,
+    ".env");
+        DotNetEnv.Env.Load();
+
         Console.WriteLine("Console Calculator in C#");
         Console.WriteLine("------------------------");
 
@@ -28,6 +33,7 @@ internal static class Program
             Console.WriteLine("\tc - Calculate");
             Console.WriteLine("\th - View calculation history");
             Console.WriteLine("\td - Delete calculation history");
+            Console.WriteLine("\tv - Calculate by voice");
             Console.WriteLine("\tq - Quit");
             Console.Write("Your option? ");
 
@@ -41,6 +47,9 @@ internal static class Program
                     break;
                 case "d":
                     ClearHistory(calculator);
+                    break;
+                case "v":
+                    await CalculateByVoiceAsync(calculator);
                     break;
                 case "q":
                 case null:
@@ -128,6 +137,41 @@ internal static class Program
             Console.WriteLine($"Your result: {result:G}");
         }
     }
+
+    private static async Task CalculateByVoiceAsync(Calculator calculator)
+    {
+        string? speechKey = Environment.GetEnvironmentVariable("AZURE_SPEECH_KEY");
+        string? speechRegion = Environment.GetEnvironmentVariable("AZURE_SPEECH_REGION");
+        string? speechLanguage = Environment.GetEnvironmentVariable("AZURE_SPEECH_LANGUAGE");
+
+        if (string.IsNullOrWhiteSpace(speechKey) ||
+            string.IsNullOrWhiteSpace(speechRegion))
+        {
+            Console.WriteLine(
+                "Voice calculation is not configured. " +
+                "Set AZURE_SPEECH_KEY and AZURE_SPEECH_REGION in .env.");
+            return;
+        }
+
+        var voiceCalculator = new VoiceCalculator(
+            speechKey,
+            speechRegion,
+            speechLanguage ?? "en-US");
+
+        try
+        {
+            VoiceCalculationResult result =
+                await voiceCalculator.CalculateFromMicrophoneAsync(calculator);
+
+            Console.WriteLine(result.Message);
+        }
+        catch (Exception exception)
+            when (exception is InvalidOperationException or ApplicationException)
+        {
+            Console.WriteLine($"Voice calculation failed: {exception.Message}");
+        }
+    }
+
 
     private static bool TryReadOperand(Calculator calculator, string prompt, out double value)
     {
