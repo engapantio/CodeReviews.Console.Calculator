@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text.RegularExpressions;
 using CalculatorLibrary;
 using Microsoft.CognitiveServices.Speech;
@@ -108,7 +108,9 @@ public sealed class VoiceCalculator
                 return Complete(calculator.DoOperation(numbers[0], numbers[1], "a"));
             }
 
-            if (ContainsAny(normalized, "subtract", "minus", "-") && numbers.Count >= 2)
+            if ((ContainsAny(normalized, "subtract", "minus") ||
+                 Regex.IsMatch(normalized, @"\d\s*-\s*\d", RegexOptions.CultureInvariant)) &&
+                numbers.Count >= 2)
             {
                 return Complete(calculator.DoOperation(numbers[0], numbers[1], "s"));
             }
@@ -119,7 +121,8 @@ public sealed class VoiceCalculator
                 return Complete(calculator.DoOperation(numbers[0], numbers[1], "m"));
             }
 
-            if (ContainsAny(normalized, "divide", "divided by", "/") && numbers.Count >= 2)
+            if (ContainsAny(normalized, "divide", "divided by", "/") &&
+                numbers.Count >= 2)
             {
                 return Complete(calculator.DoOperation(numbers[0], numbers[1], "d"));
             }
@@ -226,7 +229,11 @@ public sealed class VoiceCalculator
     {
         foreach (string keyword in keywords)
         {
-            if (utterance.Contains(keyword, StringComparison.Ordinal))
+            string pattern = char.IsLetterOrDigit(keyword[0])
+                ? $@"\b{Regex.Escape(keyword)}\b"
+                : $@"(?<![\w]){Regex.Escape(keyword)}(?![\w])";
+
+            if (Regex.IsMatch(utterance, pattern, RegexOptions.CultureInvariant))
             {
                 return true;
             }
@@ -258,4 +265,3 @@ public sealed class VoiceCalculator
         };
     }
 }
-
