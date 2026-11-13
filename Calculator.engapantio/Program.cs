@@ -1,4 +1,4 @@
-﻿using CalculatorLibrary;
+using CalculatorLibrary;
 
 namespace CalculatorProgram;
 
@@ -19,7 +19,7 @@ internal static class Program
         {
             calculator = new Calculator();
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
         {
             Console.WriteLine($"Unable to load calculator history: {exception.Message}");
             return;
@@ -153,22 +153,26 @@ internal static class Program
             return;
         }
 
-        var voiceCalculator = new VoiceCalculator(
-            speechKey,
-            speechRegion,
-            speechLanguage ?? "en-US");
-
         try
         {
+            var voiceCalculator = new VoiceCalculator(
+                speechKey,
+                speechRegion,
+                speechLanguage ?? "en-US");
+
             VoiceCalculationResult result =
                 await voiceCalculator.CalculateFromMicrophoneAsync(calculator);
 
             Console.WriteLine(result.Message);
         }
         catch (Exception exception)
-            when (exception is InvalidOperationException or ApplicationException)
+            when (exception is ArgumentException or
+                InvalidOperationException or
+                ApplicationException or
+                ObjectDisposedException)
         {
             Console.WriteLine($"Voice calculation failed: {exception.Message}");
+            Console.WriteLine("You can continue using manual input.");
         }
     }
 
